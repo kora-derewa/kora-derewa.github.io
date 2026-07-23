@@ -1,1 +1,16 @@
-test
+<html>
+<head>
+    <title>Lista Związków</title>
+</head>
+<body>
+    <h1>Aktywne Związki</h1>
+    <ul>
+        {{ range datasource "items" }}
+        <li>
+            <strong>{{ .name }}</strong> - {{ .county }}<br>
+            <p>{{ .description }}</p>
+        </li>
+        {{ end }}
+    </ul>
+</body>
+</html>
