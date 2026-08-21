@@ -1,16 +1,251 @@
-<html>
+<!DOCTYPE html>
+<html lang="pl">
 <head>
-    <title>Lista Związków</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⏱️ Aktualny czas</title>
+
+    <!-- Google Fonts (CDN) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+
+    <style>
+        /* Reset & base */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(145deg, #0b1120 0%, #1a2639 100%);
+            font-family: 'Inter', sans-serif;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 3rem;
+            padding: 3.5rem 4rem;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+            text-align: center;
+            max-width: 580px;
+            width: 100%;
+            transition: transform 0.25s ease;
+        }
+
+        .card:hover {
+            transform: scale(1.01);
+        }
+
+        .label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.45);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .time-display {
+            font-size: 4.8rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.04em;
+            line-height: 1.2;
+            text-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .time-display .seconds {
+            font-size: 2.8rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 0.2rem;
+        }
+
+        .date-display {
+            margin-top: 0.75rem;
+            font-size: 1.15rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.04em;
+        }
+
+        .badge {
+            display: inline-block;
+            margin-top: 1.75rem;
+            padding: 0.45rem 1.4rem;
+            border-radius: 100px;
+            background: rgba(99, 140, 255, 0.18);
+            color: #8bb3ff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            border: 1px solid rgba(99, 140, 255, 0.15);
+            backdrop-filter: blur(4px);
+        }
+
+        .badge i {
+            font-style: normal;
+            display: inline-block;
+            animation: pulse-dot 1.6s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .card {
+                padding: 2.5rem 1.8rem;
+                border-radius: 2rem;
+            }
+            .time-display {
+                font-size: 3.4rem;
+            }
+            .time-display .seconds {
+                font-size: 2rem;
+            }
+            .date-display {
+                font-size: 1rem;
+            }
+        }
+
+        /* CDN info footer */
+        .cdn-footnote {
+            margin-top: 2rem;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.06em;
+            font-weight: 400;
+        }
+        .cdn-footnote span {
+            color: rgba(255, 255, 255, 0.35);
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Aktywne Związki</h1>
-    <ul>
-        {{ range datasource "items" }}
-        <li>
-            <strong>{{ .name }}</strong> - {{ .county }}<br>
-            <p>{{ .description }}</p>
-        </li>
-        {{ end }}
-    </ul>
+
+    <div class="card" role="main" aria-label="Zegar z aktualnym czasem">
+
+        <div class="label">⏱️ Aktualny czas</div>
+
+        <!-- GŁÓWNY WYŚWIETLACZ CZASU -->
+        <div class="time-display" id="timeDisplay">
+            00:00:<span class="seconds" id="secondsDisplay">00</span>
+        </div>
+
+        <!-- DATA -->
+        <div class="date-display" id="dateDisplay">-- --- ----</div>
+
+        <!-- STATUS / CDN INFO -->
+        <div class="badge">
+            <i>●</i> &nbsp;CDN &amp; live &nbsp;·&nbsp; 🇵🇱
+        </div>
+
+        <!-- Mała stopka z informacją o CDN -->
+        <div class="cdn-footnote">
+            <span>📦</span> Google Fonts &amp; vanilla JS &nbsp;·&nbsp; <span id="loadTime"></span>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // --- elementy DOM ---
+            const timeDisplay = document.getElementById('timeDisplay');
+            const secondsSpan = document.getElementById('secondsDisplay');
+            const dateDisplay = document.getElementById('dateDisplay');
+            const loadTimeSpan = document.getElementById('loadTime');
+
+            // --- formatowanie liczby (zawsze 2 cyfry) ---
+            const pad = (n) => String(n).padStart(2, '0');
+
+            // --- formatowanie daty po polsku ---
+            const formatDate = (date) => {
+                const dni = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+                const miesiace = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+                    'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+                ];
+                const dzienTyg = dni[date.getDay()];
+                const dzien = date.getDate();
+                const miesiac = miesiace[date.getMonth()];
+                const rok = date.getFullYear();
+                return `${dzienTyg}, ${dzien} ${miesiac} ${rok}`;
+            };
+
+            // --- aktualizacja zegara ---
+            function updateClock() {
+                const now = new Date();
+
+                // godzina + minuta
+                const hh = pad(now.getHours());
+                const mm = pad(now.getMinutes());
+                const ss = pad(now.getSeconds());
+
+                // aktualizacja sekund osobno (dla stylizacji)
+                secondsSpan.textContent = ss;
+                // reszta czasu – utrzymujemy łącznie z sekundami w jednym węźle tekstowym
+                // ale żeby nie nadpisywać całego innerHTML, wstawiamy przed sekundami
+                // Najprościej: ustawiamy cały czas w timeDisplay, ale sekundy są w osobnym spanie.
+                // Musimy wymienić tylko część przed sekundami.
+                const timeWithoutSeconds = `${hh}:${mm}:`;
+                // Pobieramy pierwszy węzeł tekstowy w timeDisplay (przed <span class="seconds">)
+                const textNode = timeDisplay.childNodes[0];
+                if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                    textNode.textContent = timeWithoutSeconds;
+                } else {
+                    // awaryjnie – jeśli struktura się zmieniła
+                    timeDisplay.innerHTML = `${timeWithoutSeconds}<span class="seconds" id="secondsDisplay">${ss}</span>`;
+                }
+
+                // data
+                dateDisplay.textContent = formatDate(now);
+            }
+
+            // --- wyświetlenie czasu załadowania strony (CDN i inne) ---
+            function setLoadTime() {
+                const loadDate = new Date();
+                const hh = pad(loadDate.getHours());
+                const mm = pad(loadDate.getMinutes());
+                const ss = pad(loadDate.getSeconds());
+                loadTimeSpan.textContent = `załadowano ${hh}:${mm}:${ss}`;
+            }
+
+            // --- uruchomienie ---
+            // pierwsze odświeżenie od razu
+            updateClock();
+            setLoadTime();
+
+            // interwał co 1 sekundę
+            setInterval(updateClock, 1000);
+
+            // opcjonalnie – aktualizacja daty o północy (nie jest konieczna, ale dla porządku)
+            // datę aktualizujemy co sekundę razem z zegarem, więc jest ok.
+
+            console.log('✅ Zegar CDN działa — czas jest aktualny!');
+        })();
+    </script>
+
 </body>
 </html>
